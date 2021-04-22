@@ -7,9 +7,6 @@ import torch
 import utils
 from policies import QPolicy
 
-# https://github.com/adityavgupta/ECE448-CS440/tree/master/mp7
-# TODO: DELETE THIS
-
 class TabQPolicy(QPolicy):
     def __init__(self, env, buckets, actionsize, lr, gamma, model=None):
         """
@@ -60,12 +57,10 @@ class TabQPolicy(QPolicy):
         
         @return qvals: the q values for the state for each action. 
         """
-        
-        qvals = np.zeros((1,3))
-        d = self.discretize(states[0])
-        qvals[0][0] = self.model[d + (0,)]
-        qvals[0][1] = self.model[d + (1,)]
-        qvals[0][2] = self.model[d + (2,)]
+        qvals = np.zeros(self.actionsize)
+        cur = self.discretize(states[0])
+        qvals[0] = self.model[cur + (0,)]
+        qvals[1] = self.model[cur + (1,)]
         return qvals
 
     def td_step(self, state, action, reward, next_state, done):
@@ -81,14 +76,16 @@ class TabQPolicy(QPolicy):
         @return loss: total loss the at this time step
         """
         cur = self.discretize(state)
-        qvals = self.model[d + (action,)]
+        qvals = self.model[cur + (action,)]
 
         d_next = self.discretize(next_state)
         
-        if (done == True and next_state[0] == self.env.goal_position):
+        print(d_next)
+        
+        if (done):
             target = reward
         else:
-            target = reward + self.gamma * max(self.model[d_next + (0,)], self.model[d_next + (1,)], self.model[d_next + (2,)])
+            target = reward + self.gamma * max(self.model[d_next + (0,)], self.model[d_next + (1,)])
 
         self.model[cur + (action,)] = qvals + self.lr * (target - qvals)
         loss = (qvals - target) ** 2
@@ -108,8 +105,8 @@ if __name__ == '__main__':
 
     statesize = env.observation_space.shape[0]
     actionsize = env.action_space.n
-    policy = TabQPolicy(env, buckets=(1,1,1,1), actionsize=actionsize, lr=args.lr, gamma=args.gamma)
+    policy = TabQPolicy(env, buckets=(1,1,6,12), actionsize=actionsize, lr=args.lr, gamma=args.gamma)
 
     utils.qlearn(env, policy, args)
 
-    torch.save(policy.model, 'tabular.npy')
+    torch.save(policy.model, 'models/tabular.npy')

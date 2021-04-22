@@ -22,7 +22,7 @@ def hyperparameters():
     parser.add_argument('--epsilon', type=float, default=0.05, help='exploration parameter')
     parser.add_argument('--gamma', type=float, default=0.99, help='discount reward factor. represents how confident a '
                                                                   'model should be able to predict future rewards')
-    parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
+    parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
 
     args = parser.parse_args()
     return args
