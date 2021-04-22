@@ -27,11 +27,16 @@ class TabQPolicy(QPolicy):
         super().__init__(len(buckets), actionsize, lr, gamma)
         self.env = env
         self.buckets = buckets
-        self.model = np.zeros(self.buckets + (actionsize, ))
+        
+        # model stuff
+        if model is None:
+            self.model = np.zeros(self.buckets + (actionsize, ))
+        else:
+            self.model = model
+            
         self.lr = lr
         self.gamma = gamma
         self.actionsize = actionsize
-        self.table = dict()
 
     def discretize(self, obs):
         """
@@ -55,6 +60,7 @@ class TabQPolicy(QPolicy):
         
         @return qvals: the q values for the state for each action. 
         """
+        
         qvals = np.zeros((1,3))
         d = self.discretize(states[0])
         qvals[0][0] = self.model[d + (0,)]
@@ -76,16 +82,10 @@ class TabQPolicy(QPolicy):
         """
         cur = self.discretize(state)
         qvals = self.model[d + (action,)]
-        
-        """
-        self.table[qvals] = self.table.get(qvals, 0) + 1
-        k = 0.01
-        self.lr = min(self.lr, k / (k + self.table[qvals]))"""
-        
+
         d_next = self.discretize(next_state)
         
         if (done == True and next_state[0] == self.env.goal_position):
-            reward = 1.0
             target = reward
         else:
             target = reward + self.gamma * max(self.model[d_next + (0,)], self.model[d_next + (1,)], self.model[d_next + (2,)])
@@ -108,7 +108,7 @@ if __name__ == '__main__':
 
     statesize = env.observation_space.shape[0]
     actionsize = env.action_space.n
-    policy = TabQPolicy(env, buckets=(6,6), actionsize=actionsize, lr=args.lr, gamma=args.gamma)
+    policy = TabQPolicy(env, buckets=(1,1,1,1), actionsize=actionsize, lr=args.lr, gamma=args.gamma)
 
     utils.qlearn(env, policy, args)
 
