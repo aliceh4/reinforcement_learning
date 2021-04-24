@@ -27,7 +27,7 @@ class TabQPolicy(QPolicy):
         
         # model stuff
         if model is None:
-            self.model = np.zeros(self.buckets + (actionsize, ))
+            self.model = np.zeros(self.buckets + (actionsize,))
         else:
             self.model = model
             
@@ -57,10 +57,12 @@ class TabQPolicy(QPolicy):
         
         @return qvals: the q values for the state for each action. 
         """
-        qvals = np.zeros(self.actionsize)
-        cur = self.discretize(states[0])
-        qvals[0] = self.model[cur + (0,)]
-        qvals[1] = self.model[cur + (1,)]
+        qvals = np.zeros([len(states), self.actionsize])
+        for i in range(len(states)):
+            cur = self.discretize(states[i])
+            qvals[i][0] = self.model[cur][0]
+            qvals[i][1] = self.model[cur][1]
+        
         return qvals
 
     def td_step(self, state, action, reward, next_state, done):
@@ -76,19 +78,21 @@ class TabQPolicy(QPolicy):
         @return loss: total loss the at this time step
         """
         cur = self.discretize(state)
-        qvals = self.model[cur + (action,)]
+        qval = self.model[cur][action]
 
         d_next = self.discretize(next_state)
-        
-        print(d_next)
         
         if (done):
             target = reward
         else:
-            target = reward + self.gamma * max(self.model[d_next + (0,)], self.model[d_next + (1,)])
+            if (self.model[d_next][0] > self.model[d_next][1]):
+                a_max = 0
+            else:
+                a_max = 1
+            target = reward + self.gamma * a_max
 
-        self.model[cur + (action,)] = qvals + self.lr * (target - qvals)
-        loss = (qvals - target) ** 2
+        self.model[cur][action] = qval + self.lr * (target - qval)
+        loss = (qval - target) ** 2
         return loss
 
     def save(self, outpath):
@@ -105,7 +109,7 @@ if __name__ == '__main__':
 
     statesize = env.observation_space.shape[0]
     actionsize = env.action_space.n
-    policy = TabQPolicy(env, buckets=(1,1,6,12), actionsize=actionsize, lr=args.lr, gamma=args.gamma)
+    policy = TabQPolicy(env, buckets=(1,1,6,12), actionsize=actionsize, lr=0.01, gamma=args.gamma)
 
     utils.qlearn(env, policy, args)
 
